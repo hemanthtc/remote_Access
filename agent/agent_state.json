@@ -1,0 +1,6 @@
+{
+  "server": "http://localhost:8001",
+  "agent_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4OWE3ZmIyNDIyNWQ0MDk2YjhhY2M0MTU4MmQ1YzVkMiIsImRldmljZV9pZCI6IjY4ZjFjODQxZDYyNTQ1YWE5YmEzYmI4MDFhNDk0ODg1IiwidHlwZSI6ImFnZW50IiwiaWF0IjoxNzg2ODAxNjg1LCJleHAiOjE4MTgzMzc2ODV9.IezcCmsYo9rmD4SrATxxBBkljEeZNL54tBI5tShEeDw",
+  "device_id": "68f1c841d62545aa9ba3bb801a494885",
+  "name": "Demo Host"
+}

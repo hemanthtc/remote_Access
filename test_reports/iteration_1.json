@@ -1,0 +1,28 @@
+{
+  "summary": "Full backend + mobile web frontend regression run for AnyControl Remote. 17/17 pytest backend tests pass (auth incl. duplicate/short-password/invalid-token cases, devices CRUD + cross-user 404, pairing new+claim + invalid code, sessions listing, WebSocket relay: agent frame relayed to controller + control events accepted + session logged + demo agent online + invalid tokens rejected on both /ws/agent and /ws/control). Frontend Expo web preview: login->Devices navigation, Demo Host ONLINE badge, Connect->remote-canvas with status overlay disappearing (live JPEG frames streaming), toolbar (viewer-rightclick-toggle, viewer-keys-toggle -> special-key chips, viewer-keyboard-toggle) all functional, viewer-disconnect returns to devices, Settings shows demo@anycontrol.io + logout returns to login, Add Device screen displays 9-digit pairing code + 6-char OTP. Demo agent was restarted (was not running) before viewer test. No blocking issues; only one minor RN web deprecation warning (props.pointerEvents).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "viewer/[deviceId].tsx", "issue": "Warning: props.pointerEvents is deprecated. Use style.pointerEvents. Reference: /app/frontend/app/viewer/[deviceId].tsx lines 238, 257, 278 (topBar/keysWrap/toolbar Views). Non-blocking."}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_anycontrol_backend.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "(Optional/minor) Move pointerEvents=\"box-none\" from props to style.pointerEvents on the top bar / keys wrap / toolbar Views in /app/frontend/app/viewer/[deviceId].tsx to silence the RN Web deprecation warning."
+  ],
+  "critical_code_review_comments": [
+    "server.py uses @app.on_event startup/shutdown which are deprecated in FastAPI >=0.109 — consider migrating to lifespan handlers (non-blocking).",
+    "Relay is single-process in-memory; correct for MVP but note it will not scale horizontally.",
+    "add-device screen only shows the newly minted OTP; if user backgrounds/returns they must Generate new code — behavior is fine and documented via 'Expires in 10 minutes'."
+  ],
+  "updated_files": ["/app/backend/tests/test_anycontrol_backend.py"],
+  "success_rate": {"backend": "100% (17/17)", "frontend": "100% of covered flows"},
+  "seed_data_creation": "No additional seed. Test users are TEST_-prefixed and disposable; a couple of TEST_ users/devices remain in Mongo (safe to ignore).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Demo agent must be running for viewer/relay tests: `cd /app/agent && nohup python agent.py --server http://localhost:8001 --demo > /tmp/agent.log 2>&1 &`. WebSocket tests hit ws://localhost:8001 directly (ingress WS also works but local is more deterministic). Run backend suite with: EXPO_PUBLIC_BACKEND_URL=<url> python -m pytest /app/backend/tests/test_anycontrol_backend.py -o addopts=''",
+  "rca_of_issue": "N/A — no bugs found."
+}

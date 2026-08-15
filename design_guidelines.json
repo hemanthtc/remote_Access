@@ -1,0 +1,170 @@
+{
+  "app_name": "AnyControl Remote",
+  "personality": "7 Dark-First Utility",
+  "personality_one_liner": "A live operational surface that feels sharp, tactical, and performance-oriented, prioritizing immediate hierarchy and fast scanning.",
+  "color": {
+    "surface": "#0F0F0F",
+    "onSurface": "#F2F2F2",
+    "surfaceSecondary": "#1A1A1A",
+    "onSurfaceSecondary": "#A3A3A3",
+    "surfaceTertiary": "#262626",
+    "onSurfaceTertiary": "#E5E5E5",
+    "surfaceInverse": "#E6E6E6",
+    "onSurfaceInverse": "#0F0F0F",
+    "brand": "#E65100",
+    "brandPrimary": "#FF6D00",
+    "onBrandPrimary": "#1A0A00",
+    "brandSecondary": "#FF9E40",
+    "onBrandSecondary": "#331400",
+    "brandTertiary": "#4D2100",
+    "onBrandTertiary": "#FFB870",
+    "success": "#008051",
+    "onSuccess": "#CCFFEB",
+    "warning": "#FFB300",
+    "onWarning": "#332400",
+    "error": "#D32F2F",
+    "onError": "#FFEBEE",
+    "info": "#616161",
+    "onInfo": "#F5F5F5",
+    "border": "#2E2E2E",
+    "borderStrong": "#4D4D4D",
+    "divider": "#1F1F1F"
+  },
+  "typography": {
+    "displayFontFamily": "Rajdhani",
+    "textFontFamily": "IBM Plex Sans",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Use tight, rigid spacing grids to create an operational command-center feel. Rely on dividers and padding rather than empty whitespace to separate modules.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 4,
+    "md": 8,
+    "lg": 12,
+    "pill": 999
+  },
+  "shadow_tier": 0,
+  "navigation": "bottom_tabs",
+  "icon_set": "Phosphor",
+  "glassmorphism": {
+    "enabled": false,
+    "do's": [
+      "Use solid surfaceSecondary and surfaceTertiary for elevation instead of blur.",
+      "Use dividers and tonal separation to maintain high contrast and clarity."
+    ],
+    "dont's": [
+      "Avoid glassmorphism entirely, as this utility demands peak performance, clarity, and zero decorative friction."
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Auth",
+      "purpose": "Secure entry point for accessing remote devices.",
+      "states": {
+        "loading": "Centered brand-colored activity indicator.",
+        "empty": "N/A",
+        "error": "Inline error messaging above the login CTA."
+      },
+      "layout": "Minimalist single-column layout. Form fields use surfaceTertiary background with no floating labels. Submit button anchored cleanly below inputs. Use the hero_datacenter abstract image heavily scrimmed at the top."
+    },
+    {
+      "name": "DevicesList",
+      "purpose": "Dashboard to monitor and quickly connect to all remote agents.",
+      "states": {
+        "loading": "Skeleton list mimicking server cards.",
+        "empty": "Illustration of a disconnected server rack, short message, and 'Add Device' primary CTA.",
+        "error": "Full-screen error with a prominent 'Retry Connection' button."
+      },
+      "layout": "Card-based layout (single column). Each card displays Device ID in display font (Rajdhani), uptime/last seen metrics, a strict online/offline indicator dot, and a prominent 'Connect' action. The layout must feel like a live metrics dashboard. Bottom tab navigation."
+    },
+    {
+      "name": "AddDevice",
+      "purpose": "Provide instructions and codes to securely pair a new remote desktop.",
+      "states": {
+        "loading": "Spinner over the pairing code area.",
+        "empty": "N/A",
+        "error": "Toast or inline message for code generation failure."
+      },
+      "layout": "Step-by-step instructions. The Pairing Code / OTP must dominate the screen using the 2xl display typography, wrapped in a surfaceTertiary block with a borderStrong outline for emphasis. Include a quick 'Copy' button."
+    },
+    {
+      "name": "RemoteViewer",
+      "purpose": "Immersive, full-screen live view of the remote desktop with overlay controls.",
+      "states": {
+        "loading": "Full-screen dark surface with a 'Negotiating connection...' terminal-style text loader.",
+        "empty": "Session ended state with a large reconnect button.",
+        "error": "Connection lost overlay with automatic retry countdown."
+      },
+      "layout": "Edge-to-edge landscape/portrait canvas. Implement a hideable/auto-fading floating widget overlay (surfaceSecondary, elevated via border/tonal contrast) for tools like disconnect, keyboard toggle, right-click, and quality toggle. Ensure touch areas are at least 44x44pt. Exclude bottom tabs from this view."
+    },
+    {
+      "name": "SessionLogs",
+      "purpose": "Audit trail of all past connections and durations.",
+      "states": {
+        "loading": "Skeleton list of narrow rows.",
+        "empty": "Abstract document icon, 'No active sessions logged', no CTA required.",
+        "error": "Standard inline error retry."
+      },
+      "layout": "High-density data list. Use narrow rows with left-aligned timestamps (mono/display font), target device names, and right-aligned durations. Strip all unnecessary padding to fit more logs per screen."
+    },
+    {
+      "name": "Settings",
+      "purpose": "Manage account, security preferences, and app options.",
+      "states": {
+        "loading": "N/A",
+        "empty": "N/A",
+        "error": "N/A"
+      },
+      "layout": "Standard categorized list layout. Group items logically (Account, Security, Session Defaults). Use Phosphor icons in a brandTertiary tinted rounded square for each row's leading visual."
+    }
+  ],
+  "images": {
+    "hero_datacenter": {
+      "url": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzOTB8MHwxfHNlYXJjaHwxfHxkYXRhY2VudGVyJTIwc2VydmVycyUyMGFic3RyYWN0fGVufDB8fHx8MTc4NjgwMTIzNXww&ixlib=rb-4.1.0&q=85",
+      "alt": "Abstract dark datacenter networking cables for hero background"
+    }
+  },
+  "haptics": {
+    "button_press": "impactLight",
+    "tab_switch": "selection",
+    "connection_success": "notificationSuccess",
+    "connection_error": "notificationError",
+    "remote_click": "impactLight",
+    "toggle_switch": "impactMedium"
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow the Dark-First Utility personality: use sharp contrast, tight spacing, and segmented controls. Avoid all visual softness like glassmorphism or oversized shadows.",
+    "NO BLUE OR PURPLE COLORS. Use the defined Warm Amber (#FF6D00) for active states, CTAs, and accents. Fallback to grey/neutral (#616161) for info states.",
+    "For the RemoteViewer screen, the control toolbar must be a floating overlay (absolute positioned) that can fade out or be hidden to preserve screen real estate. Use a toggle to switch between touch (direct manipulation) and mouse (virtual cursor) mode.",
+    "Use Rajdhani for metrics, Device IDs, and headers to create a command-center aesthetic, paired with IBM Plex Sans for body readability.",
+    "Ensure the RemoteViewer handles gesture disambiguation carefully; use specific gesture regions to translate local touch to remote input without triggering local navigation.",
+    "Implement the gradient-to-dark scrim pattern (Layer 0 image, Layer 1 linear gradient, Layer 2 text) securely over the hero_datacenter image in the Auth screen.",
+    "For settings and list items, use the requested tinted icon container pattern: feature icons placed inside a brandTertiary-tinted rounded square."
+  ]
+}
