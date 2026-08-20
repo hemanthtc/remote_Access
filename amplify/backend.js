@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const backend_1 = require("@aws-amplify/backend");
+const fargate_resource_1 = require("./custom/fargate-resource");
+/**
+ * @database MongoDB Atlas
+ * @description AnyControl Remote Amplify Backend Entrypoint.
+ */
+const backend = (0, backend_1.defineBackend)({});
+// Add the custom Fargate deployment stack to the Amplify backend.
+new fargate_resource_1.FargateStack(backend.createStack('FargateStack'), 'FargateStack');
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiYmFja2VuZC5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbImJhY2tlbmQudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7QUFBQSxrREFBcUQ7QUFDckQsZ0VBQXlEO0FBRXpEOzs7R0FHRztBQUNILE1BQU0sT0FBTyxHQUFHLElBQUEsdUJBQWEsRUFBQyxFQUFFLENBQUMsQ0FBQztBQUVsQyxrRUFBa0U7QUFDbEUsSUFBSSwrQkFBWSxDQUNkLE9BQU8sQ0FBQyxXQUFXLENBQUMsY0FBYyxDQUFDLEVBQ25DLGNBQWMsQ0FDZixDQUFDIiwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgZGVmaW5lQmFja2VuZCB9IGZyb20gJ0Bhd3MtYW1wbGlmeS9iYWNrZW5kJztcbmltcG9ydCB7IEZhcmdhdGVTdGFjayB9IGZyb20gJy4vY3VzdG9tL2ZhcmdhdGUtcmVzb3VyY2UnO1xuXG4vKipcbiAqIEBkYXRhYmFzZSBNb25nb0RCIEF0bGFzXG4gKiBAZGVzY3JpcHRpb24gQW55Q29udHJvbCBSZW1vdGUgQW1wbGlmeSBCYWNrZW5kIEVudHJ5cG9pbnQuXG4gKi9cbmNvbnN0IGJhY2tlbmQgPSBkZWZpbmVCYWNrZW5kKHt9KTtcblxuLy8gQWRkIHRoZSBjdXN0b20gRmFyZ2F0ZSBkZXBsb3ltZW50IHN0YWNrIHRvIHRoZSBBbXBsaWZ5IGJhY2tlbmQuXG5uZXcgRmFyZ2F0ZVN0YWNrKFxuICBiYWNrZW5kLmNyZWF0ZVN0YWNrKCdGYXJnYXRlU3RhY2snKSxcbiAgJ0ZhcmdhdGVTdGFjaydcbik7XG4iXX0=
