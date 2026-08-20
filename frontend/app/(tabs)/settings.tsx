@@ -1,9 +1,10 @@
-import React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useState } from "react";
+import { Alert, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/auth";
+import { api } from "@/src/api/client";
 import { PrimaryButton } from "@/src/components/ui";
 import { colors, font, radius, spacing, type } from "@/src/theme";
 
@@ -22,10 +23,45 @@ function Row({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; lab
 export default function Settings() {
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
+  const [deleting, setDeleting] = useState(false);
 
   const doLogout = async () => {
     await logout();
     router.replace("/(auth)/login");
+  };
+
+  const confirmDeleteAccount = () => {
+    const doDelete = async () => {
+      setDeleting(true);
+      try {
+        await api.deleteAccount();
+        await logout();
+        router.replace("/(auth)/login");
+      } catch (e: any) {
+        setDeleting(false);
+        const msg = e.message || "Failed to delete account";
+        if (Platform.OS === "web") {
+          window.alert(msg);
+        } else {
+          Alert.alert("Error", msg);
+        }
+      }
+    };
+
+    if (Platform.OS === "web") {
+      if (window.confirm("Delete your account?\n\nThis will permanently remove your account, all devices, and session history. This action cannot be undone.")) {
+        doDelete();
+      }
+    } else {
+      Alert.alert(
+        "Delete Account",
+        "This will permanently remove your account, all devices, and session history. This action cannot be undone.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Delete", style: "destructive", onPress: doDelete },
+        ]
+      );
+    }
   };
 
   return (
@@ -72,6 +108,16 @@ export default function Settings() {
           variant="danger"
           onPress={doLogout}
           icon={<Ionicons name="log-out-outline" size={18} color={colors.error} />}
+        />
+
+        <PrimaryButton
+          testID="delete-account-button"
+          label="Delete Account"
+          variant="danger"
+          onPress={confirmDeleteAccount}
+          loading={deleting}
+          disabled={deleting}
+          icon={<Ionicons name="trash-outline" size={18} color={colors.error} />}
         />
       </ScrollView>
     </View>

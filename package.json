@@ -1,4 +1,12 @@
 {
+  "name": "anycontrol-remote-workspace",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npm run dev --prefix backend",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:agent": "npm run dev --prefix agent -- --demo",
+    "dev:frontend": "npm run start --prefix frontend"
+  },
   "dependencies": {
     "next": "^16.3.1",
     "node": "^26.7.0"

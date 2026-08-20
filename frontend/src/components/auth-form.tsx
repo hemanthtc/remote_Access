@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -29,6 +29,7 @@ export function AuthScreen({
   footer: React.ReactNode;
 }) {
   const insets = useSafeAreaInsets();
+  const [visibleFields, setVisibleFields] = useState<Record<string, boolean>>({});
   return (
     <View style={styles.root}>
       <KeyboardAvoidingView
@@ -72,11 +73,24 @@ export function AuthScreen({
                 placeholderTextColor={colors.onSurfaceSecondary}
                 value={f.value}
                 onChangeText={f.set}
-                secureTextEntry={f.secure}
+                secureTextEntry={f.secure ? !visibleFields[f.testID] : false}
                 keyboardType={f.keyboardType}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
+              {f.secure && (
+                <Pressable
+                  onPress={() => setVisibleFields(prev => ({ ...prev, [f.testID]: !prev[f.testID] }))}
+                  style={styles.eyeBtn}
+                  hitSlop={8}
+                >
+                  <Ionicons
+                    name={visibleFields[f.testID] ? "eye-outline" : "eye-off-outline"}
+                    size={20}
+                    color={colors.onSurfaceSecondary}
+                  />
+                </Pressable>
+              )}
             </View>
           ))}
 
@@ -106,7 +120,13 @@ export function AuthScreen({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   hero: { height: 320, justifyContent: "flex-end" },
-  heroContent: { padding: spacing.xl, gap: spacing.sm },
+  heroContent: {
+    padding: spacing.xl,
+    gap: spacing.sm,
+    maxWidth: 420,
+    width: "100%",
+    alignSelf: "center",
+  },
   logoRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.md },
   logoBadge: {
     width: 40, height: 40, borderRadius: radius.md,
@@ -115,7 +135,14 @@ const styles = StyleSheet.create({
   brandText: { color: colors.onSurface, fontFamily: font.displayBold, fontSize: type.xl, letterSpacing: 3 },
   title: { color: colors.onSurface, fontFamily: font.displayBold, fontSize: 34, lineHeight: 38 },
   subtitle: { color: colors.onSurfaceSecondary, fontFamily: font.body, fontSize: type.lg },
-  form: { padding: spacing.xl, gap: spacing.md },
+  form: {
+    padding: spacing.xl,
+    gap: spacing.md,
+    maxWidth: 420,
+    width: "100%",
+    alignSelf: "center",
+  },
+  eyeBtn: { padding: spacing.xs },
   inputWrap: {
     flexDirection: "row", alignItems: "center", gap: spacing.sm,
     backgroundColor: colors.surfaceTertiary, borderRadius: radius.md,

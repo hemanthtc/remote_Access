@@ -1,15 +1,20 @@
-import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useState, useRef } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, Platform } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
+import jsqr from "jsqr";
 import { api } from "@/src/api/client";
 import { useToast } from "@/src/components/toast";
 import { colors, font, radius, spacing, type } from "@/src/theme";
 
 const BACKEND = process.env.EXPO_PUBLIC_BACKEND_URL as string;
+
+// Helper to safely render standard HTML tags on web compilation
+const VideoElement = "video" as any;
+const CanvasElement = "canvas" as any;
 
 function Step({ n, title, children }: { n: number; title: string; children?: React.ReactNode }) {
   return (
@@ -26,22 +31,102 @@ function Step({ n, title, children }: { n: number; title: string; children?: Rea
 export default function AddDevice() {
   const insets = useSafeAreaInsets();
   const toast = useToast();
+  
+  // Modes: "select" (choose host or scan), "host" (show QR), "scan" (camera active)
+  const [mode, setMode] = useState<"select" | "host" | "scan">("select");
   const [data, setData] = useState<{ code: string; otp: string } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  const generate = async () => {
+  // Scanner refs
+  const videoRef = useRef<any>(null);
+  const canvasRef = useRef<any>(null);
+  const streamRef = useRef<any>(null);
+
+  useEffect(() => {
+    return () => {
+      stopScanner();
+    };
+  }, []);
+
+  const startHostMode = async () => {
+    setMode("host");
     setLoading(true);
     try {
       const res = await api.pairNew();
       setData({ code: res.code, otp: res.otp });
     } catch (e: any) {
-      toast.show(e.message || "Failed to generate code", "error");
+      toast.show(e.message || "Failed to generate pairing details", "error");
+      setMode("select");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { generate(); }, []);
+  const startScanMode = async () => {
+    setMode("scan");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      streamRef.current = stream;
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+          requestAnimationFrame(tick);
+        }
+      }, 100);
+    } catch (err) {
+      toast.show("Camera access denied or unavailable", "error");
+      setMode("select");
+    }
+  };
+
+  const stopScanner = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track: any) => track.stop());
+      streamRef.current = null;
+    }
+  };
+
+  const tick = () => {
+    if (!streamRef.current || !videoRef.current) return;
+    const video = videoRef.current;
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const ctx = canvas.getContext("2d");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsqr(imageData.data, imageData.width, imageData.height);
+        if (code) {
+          try {
+            const payload = JSON.parse(code.data);
+            if (payload.code && payload.otp) {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              stopScanner();
+              claimAgent(payload.code, payload.otp);
+              return;
+            }
+          } catch {
+            // Not a valid payload
+          }
+        }
+      }
+    }
+    requestAnimationFrame(tick);
+  };
+
+  const claimAgent = async (code: string, otp: string) => {
+    try {
+      await api.agentClaim(code, otp);
+      toast.show("Device linked successfully!", "success");
+      router.replace("/(tabs)");
+    } catch (e: any) {
+      toast.show(e.message || "Failed to link device", "error");
+      startScanMode();
+    }
+  };
 
   const copy = async (value: string, label: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -49,69 +134,178 @@ export default function AddDevice() {
     toast.show(`${label} copied`, "success");
   };
 
+  const reset = () => {
+    stopScanner();
+    setMode("select");
+    setData(null);
+  };
+
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
-        <Pressable testID="add-device-close" onPress={() => router.back()} hitSlop={10} style={styles.close}>
-          <Ionicons name="close" size={24} color={colors.onSurface} />
-        </Pressable>
-        <Text style={styles.title}>Add Device</Text>
+        {mode !== "select" ? (
+          <Pressable testID="add-device-back" onPress={reset} hitSlop={10} style={styles.close}>
+            <Ionicons name="arrow-back" size={24} color={colors.onSurface} />
+          </Pressable>
+        ) : (
+          <Pressable
+            testID="add-device-close"
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/(tabs)");
+              }
+            }}
+            hitSlop={10}
+            style={styles.close}
+          >
+            <Ionicons name="close" size={24} color={colors.onSurface} />
+          </Pressable>
+        )}
+        <Text style={styles.title}>
+          {mode === "select" ? "Add Device" : mode === "host" ? "Host Setup" : "Scan QR Code"}
+        </Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: insets.bottom + spacing.xl, gap: spacing.xl }}>
-        <View style={styles.codeCard} testID="pairing-code-card">
-          <Text style={styles.codeLabel}>PAIRING CODE</Text>
-          {loading || !data ? (
-            <ActivityIndicator color={colors.brandPrimary} style={{ marginVertical: spacing.xl }} />
-          ) : (
-            <>
-              <Pressable onPress={() => copy(data.code, "Code")}>
-                <Text style={styles.code} testID="pairing-code">{data.code}</Text>
-              </Pressable>
-              <View style={styles.otpRow}>
-                <Text style={styles.otpLabel}>OTP</Text>
-                <Pressable onPress={() => copy(data.otp, "OTP")} style={styles.otpChip}>
-                  <Text style={styles.otp} testID="pairing-otp">{data.otp}</Text>
-                  <Ionicons name="copy-outline" size={16} color={colors.onSurfaceSecondary} />
-                </Pressable>
+        {/* MODE SELECTOR */}
+        {mode === "select" && (
+          <View style={styles.selectContainer}>
+            <Pressable
+              testID="option-host"
+              onPress={startHostMode}
+              style={styles.optionCard}
+            >
+              <View style={styles.optionIconBox}>
+                <Ionicons name="desktop-outline" size={28} color={colors.brandPrimary} />
               </View>
-              <Text style={styles.expiry}>Expires in 10 minutes</Text>
-            </>
-          )}
-        </View>
+              <View style={{ flex: 1, gap: spacing.xs }}>
+                <Text style={styles.optionTitle}>Make this device as a host</Text>
+                <Text style={styles.optionDesc}>Display a QR code on this screen so another device can scan and control this computer.</Text>
+              </View>
+            </Pressable>
 
-        <Pressable testID="regenerate-code" onPress={generate} style={styles.regen}>
-          <Ionicons name="refresh" size={16} color={colors.brandSecondary} />
-          <Text style={styles.regenText}>Generate new code</Text>
-        </Pressable>
+            <Pressable
+              testID="option-scan"
+              onPress={startScanMode}
+              style={styles.optionCard}
+            >
+              <View style={styles.optionIconBox}>
+                <Ionicons name="scan-outline" size={28} color={colors.brandPrimary} />
+              </View>
+              <View style={{ flex: 1, gap: spacing.xs }}>
+                <Text style={styles.optionTitle}>Scan the QR code</Text>
+                <Text style={styles.optionDesc}>Open your camera to scan a host's QR code and control it remotely from this device.</Text>
+              </View>
+            </Pressable>
+          </View>
+        )}
 
-        <View style={styles.instructions}>
-          <Text style={styles.sectionTitle}>SET UP THE DESKTOP AGENT</Text>
-          <Step n={1} title="Install the agent on your computer">
-            <Text style={styles.stepBody}>Download the AnyControl agent and install its requirements (Windows / macOS / Linux).</Text>
-          </Step>
-          <Step n={2} title="Point it at your server">
-            <View style={styles.serverBox}>
-              <Text style={styles.serverUrl} numberOfLines={1}>{BACKEND}</Text>
-              <Pressable onPress={() => copy(BACKEND, "Server URL")} hitSlop={8}>
-                <Ionicons name="copy-outline" size={16} color={colors.onSurfaceSecondary} />
-              </Pressable>
-            </View>
-          </Step>
-          <Step n={3} title="Run the pairing command">
-            <View style={styles.cmdBox}>
-              <Text style={styles.cmd} selectable>
-                python agent.py --server {BACKEND} --pair {data?.code || "<code>"} --otp {data?.otp || "<otp>"} --name "My Laptop"
+        {/* HOST MODE (Displays QR Code) */}
+        {mode === "host" && (
+          <View style={styles.hostContainer}>
+            <View style={styles.scannerBox}>
+              <Text style={styles.scannerLabel}>SCAN THIS QR CODE ON YOUR CONTROLLER</Text>
+              {loading || !data ? (
+                <ActivityIndicator color={colors.brandPrimary} style={{ marginVertical: spacing.xl }} />
+              ) : (
+                <div style={{ marginTop: spacing.md, padding: spacing.md, backgroundColor: "#fff", borderRadius: 12 }}>
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                      JSON.stringify({ code: data.code, otp: data.otp })
+                    )}`}
+                    style={{ width: 200, height: 200, display: "block" }}
+                    alt="Pairing QR Code"
+                  />
+                </div>
+              )}
+              {data && (
+                <View style={styles.textCodes}>
+                  <Text style={styles.expiry}>Pairing Code: <Text style={{ color: colors.onSurface, fontFamily: font.displayBold }}>{data.code}</Text>  |  OTP: <Text style={{ color: colors.brandSecondary, fontFamily: font.displayBold }}>{data.otp}</Text></Text>
+                </View>
+              )}
+              <Text style={styles.scannerSubtitle}>
+                Leave this screen open and scan the QR code above with your mobile phone to pair.
               </Text>
             </View>
-          </Step>
-          <Step n={4} title="Done">
-            <Text style={styles.stepBody}>The computer appears in My Devices as ONLINE. Tap Connect to control it.</Text>
-          </Step>
-        </View>
 
-        <Pressable testID="pairing-done" onPress={() => router.back()} style={styles.doneBtn}>
+            <View style={[styles.instructions, { marginTop: spacing.lg }]}>
+              <Text style={styles.sectionTitle}>AGENT SETUP INSTRUCTIONS</Text>
+              <Step n={1} title="Run the desktop agent on this computer">
+                <Text style={styles.stepBody}>Open a terminal on this computer and run the agent script pointing to your server:</Text>
+                <View style={styles.cmdBox}>
+                  <Text style={styles.cmd} selectable>
+                    npm run dev:agent -- --server {BACKEND} --pair {data?.code || "<code>"} --otp {data?.otp || "<otp>"}
+                  </Text>
+                </View>
+              </Step>
+              <Step n={2} title="Or: Connect with account credentials">
+                <Text style={styles.stepBody}>You can also login the agent directly in terminal without pairing code:</Text>
+                <View style={styles.cmdBox}>
+                  <Text style={styles.cmd} selectable>
+                    npm run dev:agent -- --server {BACKEND} --email "your-email" --password "your-pass"
+                  </Text>
+                </View>
+              </Step>
+            </View>
+          </View>
+        )}
+
+        {/* SCAN MODE (Webcam Camera Active) */}
+        {mode === "scan" && (
+          <View style={styles.scanContainer}>
+            <View style={styles.scannerBox} testID="qr-scanner-card">
+              <Text style={styles.scannerLabel}>ALIGN QR CODE IN THE BOX</Text>
+              {Platform.OS === "web" ? (
+                <VideoElement
+                  ref={videoRef}
+                  style={{ width: "100%", height: 260, borderRadius: radius.md, backgroundColor: "#000", marginTop: spacing.md }}
+                  playsInline
+                />
+              ) : (
+                <View style={styles.scannerOffline}>
+                  <Ionicons name="camera-reverse-outline" size={48} color={colors.onSurfaceSecondary} />
+                  <Text style={styles.scannerOfflineText}>Camera scanner inactive or blocked</Text>
+                </View>
+              )}
+              <CanvasElement ref={canvasRef} style={{ display: "none" }} />
+              <Text style={styles.scannerSubtitle}>
+                Point your phone's camera at the QR code displayed on your computer (terminal or web browser host setup screen).
+              </Text>
+            </View>
+
+            <View style={[styles.instructions, { marginTop: spacing.lg }]}>
+              <Text style={styles.sectionTitle}>SET UP THE HOST COMPUTER</Text>
+              <Step n={1} title="Start agent or host screen on your computer">
+                <Text style={styles.stepBody}>Run the background desktop agent on your laptop or click "Make this device as a host" in the web application browser on your computer.</Text>
+              </Step>
+              <Step n={2} title="Run the command to show QR code">
+                <View style={styles.cmdBox}>
+                  <Text style={styles.cmd} selectable>
+                    npm run dev:agent -- --server {BACKEND}
+                  </Text>
+                </View>
+              </Step>
+              <Step n={3} title="Align & Connect">
+                <Text style={styles.stepBody}>Point this scanner box directly at the QR Code printed in your laptop terminal or displayed on your laptop browser screen.</Text>
+              </Step>
+            </View>
+          </View>
+        )}
+
+        <Pressable
+          testID="pairing-done"
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace("/(tabs)");
+            }
+          }}
+          style={styles.doneBtn}
+        >
           <Text style={styles.doneText}>Back to Devices</Text>
         </Pressable>
       </ScrollView>
@@ -128,25 +322,23 @@ const styles = StyleSheet.create({
   },
   close: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   title: { color: colors.onSurface, fontFamily: font.displayBold, fontSize: type.xxl },
-  codeCard: {
+  scannerBox: {
     backgroundColor: colors.surfaceTertiary, borderRadius: radius.lg,
     borderWidth: 1, borderColor: colors.borderStrong, padding: spacing.xl, alignItems: "center",
   },
-  codeLabel: { color: colors.brandSecondary, fontFamily: font.bodySemi, fontSize: type.sm, letterSpacing: 3 },
-  code: {
-    color: colors.onSurface, fontFamily: font.displayBold, fontSize: 44, letterSpacing: 4, marginTop: spacing.sm,
+  scannerLabel: { color: colors.brandSecondary, fontFamily: font.bodySemi, fontSize: type.sm, letterSpacing: 2, textAlign: "center" },
+  scannerOffline: {
+    width: "100%", height: 260, borderRadius: radius.md, backgroundColor: colors.surfaceSecondary,
+    borderWidth: 1, borderColor: colors.border, marginTop: spacing.md,
+    alignItems: "center", justifyContent: "center", gap: spacing.md,
   },
-  otpRow: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginTop: spacing.lg },
-  otpLabel: { color: colors.onSurfaceSecondary, fontFamily: font.bodySemi, fontSize: type.sm, letterSpacing: 2 },
-  otpChip: {
-    flexDirection: "row", alignItems: "center", gap: spacing.sm,
-    backgroundColor: colors.surface, borderRadius: radius.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
-    borderWidth: 1, borderColor: colors.border,
+  scannerOfflineText: { color: colors.onSurfaceSecondary, fontFamily: font.body, fontSize: type.base },
+  retryScanBtn: {
+    paddingHorizontal: spacing.xl, height: 40, borderRadius: radius.md,
+    backgroundColor: colors.brandPrimary, alignItems: "center", justifyContent: "center",
   },
-  otp: { color: colors.brandSecondary, fontFamily: font.displayBold, fontSize: type.xl, letterSpacing: 2 },
-  expiry: { color: colors.onSurfaceSecondary, fontFamily: font.body, fontSize: type.sm, marginTop: spacing.lg },
-  regen: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm },
-  regenText: { color: colors.brandSecondary, fontFamily: font.bodySemi, fontSize: type.base },
+  retryScanText: { color: colors.onBrandPrimary, fontFamily: font.bodySemi, fontSize: type.base },
+  scannerSubtitle: { color: colors.onSurfaceSecondary, fontFamily: font.body, fontSize: type.sm, marginTop: spacing.lg, textAlign: "center", lineHeight: 18 },
   instructions: { gap: spacing.lg },
   sectionTitle: { color: colors.onSurfaceSecondary, fontFamily: font.bodySemi, fontSize: 11, letterSpacing: 2 },
   step: { flexDirection: "row", gap: spacing.md },
@@ -157,6 +349,7 @@ const styles = StyleSheet.create({
   stepNumText: { color: colors.onBrandTertiary, fontFamily: font.displayBold, fontSize: type.base },
   stepTitle: { color: colors.onSurface, fontFamily: font.bodySemi, fontSize: type.lg, marginBottom: spacing.xs },
   stepBody: { color: colors.onSurfaceSecondary, fontFamily: font.body, fontSize: type.base, lineHeight: 20 },
+  stepBodyDetail: { color: colors.onSurfaceSecondary, fontFamily: font.body, fontSize: type.sm, lineHeight: 18, marginTop: spacing.xs },
   serverBox: {
     flexDirection: "row", alignItems: "center", gap: spacing.sm,
     backgroundColor: colors.surfaceSecondary, borderRadius: radius.md, padding: spacing.md,
@@ -173,4 +366,20 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
   doneText: { color: colors.onSurface, fontFamily: font.bodySemi, fontSize: type.lg },
+  selectContainer: { gap: spacing.lg, paddingVertical: spacing.md },
+  optionCard: {
+    flexDirection: "row", gap: spacing.lg, backgroundColor: colors.surfaceSecondary,
+    borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: spacing.xl,
+    alignItems: "center",
+  },
+  optionIconBox: {
+    width: 56, height: 56, borderRadius: radius.md, backgroundColor: colors.brandTertiary,
+    alignItems: "center", justifyContent: "center",
+  },
+  optionTitle: { color: colors.onSurface, fontFamily: font.displayBold, fontSize: type.xl },
+  optionDesc: { color: colors.onSurfaceSecondary, fontFamily: font.body, fontSize: type.base, lineHeight: 22 },
+  hostContainer: { gap: spacing.xl },
+  scanContainer: { gap: spacing.xl },
+  textCodes: { marginTop: spacing.md, alignItems: "center" },
+  expiry: { color: colors.onSurfaceSecondary, fontFamily: font.body, fontSize: type.base },
 });

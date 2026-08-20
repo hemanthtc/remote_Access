@@ -5,6 +5,7 @@
   "scripts": {
     "preinstall": "node ./scripts/cmd-guard.js --preinstall",
     "start": "expo start",
+    "build": "expo export --platform web",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
     "ios": "expo start --ios",
@@ -33,6 +34,7 @@
     "expo-symbols": "1.0.8",
     "expo-system-ui": "6.0.9",
     "expo-web-browser": "15.0.11",
+    "jsqr": "1.4.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",

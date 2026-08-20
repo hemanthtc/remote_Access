@@ -56,4 +56,6 @@ export const api = {
   pairNew: (): Promise<{ code: string; otp: string; expires_in: number }> =>
     request("/devices/pair/new", { method: "POST" }),
   sessions: (): Promise<Session[]> => request("/sessions"),
+  deleteAccount: () => request("/auth/account", { method: "DELETE" }),
+  agentClaim: (code: string, otp: string) => request("/devices/pair/agent-claim", { method: "POST", body: JSON.stringify({ code, otp }) }),
 };

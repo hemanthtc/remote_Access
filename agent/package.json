@@ -1,0 +1,28 @@
+{
+  "name": "anycontrol-agent",
+  "version": "1.0.0",
+  "description": "AnyControl Remote Node.js Desktop Agent in TypeScript",
+  "main": "dist/agent.js",
+  "scripts": {
+    "dev": "ts-node src/agent.ts",
+    "build": "tsc",
+    "start": "node dist/agent.js"
+  },
+  "dependencies": {
+    "@nut-tree-fork/nut-js": "^4.2.6",
+    "axios": "^1.7.2",
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.5",
+    "jpeg-js": "^0.4.4",
+    "qrcode-terminal": "^0.12.0",
+    "screenshot-desktop": "^1.15.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "@types/qrcode-terminal": "^0.12.2",
+    "@types/ws": "^8.5.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.2"
+  }
+}
