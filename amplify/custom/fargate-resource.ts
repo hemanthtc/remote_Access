@@ -3,6 +3,7 @@ import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecsPatterns from 'aws-cdk-lib/aws-ecs-patterns';
+import * as ecr from 'aws-cdk-lib/aws-ecr';
 
 // Minimal ambient declaration for the Node.js `process` global so this file
 // does not depend on `@types/node` being resolvable by the ampx type-checker.
@@ -25,7 +26,18 @@ export class FargateStack extends cdk.Stack {
       vpc,
     });
 
-    // 3. Deploy the backend Docker container onto ECS Fargate with an ALB
+    // The backend container image is pre-built and pushed to Amazon ECR
+    // (Amplify's build environment cannot build Docker images itself).
+    // Repository name and image tag are configurable via env vars.
+    const repoName = process.env.BACKEND_ECR_REPO || 'anycontrol-backend';
+    const imageTag = process.env.BACKEND_IMAGE_TAG || 'latest';
+    const backendRepo = ecr.Repository.fromRepositoryName(
+      this,
+      'AnyControlBackendRepo',
+      repoName
+    );
+
+    // 3. Deploy the backend container onto ECS Fargate with an ALB
     const fargateService = new ecsPatterns.ApplicationLoadBalancedFargateService(
       this,
       'AnyControlFargateService',
@@ -35,10 +47,9 @@ export class FargateStack extends cdk.Stack {
         memoryLimitMiB: 512, // Minimal RAM (512MB) for dev / testing
         desiredCount: 1,  // Run 1 instance of the backend task
         taskImageOptions: {
-          // Build & push the container from the repo-root `backend` folder.
-          // Path is resolved relative to the current working directory, which
-          // is the repo root when `ampx pipeline-deploy` runs.
-          image: ecs.ContainerImage.fromAsset('backend'),
+          // Reference the pre-built image from ECR instead of building it here.
+          // (grants ECS pull permission on the repo automatically.)
+          image: ecs.ContainerImage.fromEcrRepository(backendRepo, imageTag),
           containerPort: 8001,
           environment: {
             MONGO_URL: process.env.MONGO_URL || '',
