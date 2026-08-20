@@ -3,7 +3,15 @@ import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecsPatterns from 'aws-cdk-lib/aws-ecs-patterns';
-import * as path from 'path';
+
+declare const process: {
+  env: {
+    MONGO_URL?: string;
+    DB_NAME?: string;
+    JWT_SECRET?: string;
+    [key: string]: string | undefined;
+  };
+};
 
 /**
  * Custom CDK Stack to deploy the AnyControl Remote backend to AWS ECS/Fargate.
@@ -33,7 +41,7 @@ export class FargateStack extends cdk.Stack {
         desiredCount: 1,  // Run 1 instance of the backend task
         taskImageOptions: {
           // Point to local backend folder to build and push container automatically
-          image: ecs.ContainerImage.fromAsset(path.join(__dirname, '../../backend')),
+          image: ecs.ContainerImage.fromAsset('../backend'),
           containerPort: 8001,
           environment: {
             MONGO_URL: process.env.MONGO_URL || '',
