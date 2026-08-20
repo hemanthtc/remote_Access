@@ -7,10 +7,6 @@
     "dev:agent": "npm run dev --prefix agent -- --demo",
     "dev:frontend": "npm run start --prefix frontend"
   },
-  "dependencies": {
-    "next": "^16.3.1",
-    "node": "^26.7.0"
-  },
   "devDependencies": {
     "@aws-amplify/backend-cli": "^1.2.0"
   }
