@@ -3,7 +3,10 @@ import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecsPatterns from 'aws-cdk-lib/aws-ecs-patterns';
-import * as path from 'path';
+
+// Minimal ambient declaration for the Node.js `process` global so this file
+// does not depend on `@types/node` being resolvable by the ampx type-checker.
+declare const process: { env: { [key: string]: string | undefined } };
 
 /**
  * Custom CDK Stack to deploy the AnyControl Remote backend to AWS ECS/Fargate.
@@ -32,8 +35,10 @@ export class FargateStack extends cdk.Stack {
         memoryLimitMiB: 512, // Minimal RAM (512MB) for dev / testing
         desiredCount: 1,  // Run 1 instance of the backend task
         taskImageOptions: {
-          // Point to local backend folder to build and push container automatically
-          image: ecs.ContainerImage.fromAsset(path.join(__dirname, '../../backend')),
+          // Build & push the container from the repo-root `backend` folder.
+          // Path is resolved relative to the current working directory, which
+          // is the repo root when `ampx pipeline-deploy` runs.
+          image: ecs.ContainerImage.fromAsset('backend'),
           containerPort: 8001,
           environment: {
             MONGO_URL: process.env.MONGO_URL || '',
