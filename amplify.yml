@@ -5,7 +5,7 @@ applications:
       phases:
         build:
           commands:
-            - npm install -g @aws-amplify/backend-cli
+            - npm install -g --force @aws-amplify/backend-cli
             - cd .. && npm install && ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
     frontend:
       phases:
