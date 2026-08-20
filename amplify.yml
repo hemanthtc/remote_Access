@@ -9,7 +9,7 @@ frontend:
   phases:
     preBuild:
       commands:
-        - cd frontend && npm ci
+        - cd frontend && npm install
         # Write environment variables from Amplify console to frontend/.env
         - cd frontend && echo "EXPO_PUBLIC_BACKEND_URL=$EXPO_PUBLIC_BACKEND_URL" > .env
     build:
