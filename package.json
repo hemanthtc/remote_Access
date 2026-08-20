@@ -8,6 +8,7 @@
     "dev:frontend": "npm run start --prefix frontend"
   },
   "devDependencies": {
-    "@aws-amplify/backend-cli": "^1.2.0"
+    "@aws-amplify/backend-cli": "^1.2.0",
+    "esbuild": "0.28.2"
   }
 }
