@@ -1,25 +1,26 @@
 version: 1
-backend:
-  phases:
-    build:
-      commands:
-        - npm install
-        - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
-frontend:
-  phases:
-    preBuild:
-      commands:
-        - cd frontend && npm install
-        # Write environment variables from Amplify console to frontend/.env
-        - cd frontend && echo "EXPO_PUBLIC_BACKEND_URL=$EXPO_PUBLIC_BACKEND_URL" > .env
-    build:
-      commands:
-        - cd frontend && npm run build
-  artifacts:
-    baseDirectory: frontend/dist
-    files:
-      - '**/*'
-  cache:
-    paths:
-      - node_modules/**/*
-      - frontend/node_modules/**/*
+applications:
+  - appRoot: frontend
+    backend:
+      phases:
+        build:
+          commands:
+            - cd .. && npm install
+            - cd .. && npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - npm install
+            # Write environment variables from Amplify console to .env
+            - echo "EXPO_PUBLIC_BACKEND_URL=$EXPO_PUBLIC_BACKEND_URL" > .env
+        build:
+          commands:
+            - npm run build
+      artifacts:
+        baseDirectory: dist
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*
